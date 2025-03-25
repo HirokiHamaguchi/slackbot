@@ -44,21 +44,23 @@ var iconv = require("iconv-lite");
 var dotenv = require("dotenv");
 var slackNotifier_1 = require("./slackNotifier");
 dotenv.config();
-var TARGET_URL = "https://info.t.u-tokyo.ac.jp/student_other_all.html";
-var CACHE_FILE = path.join(__dirname, "cache.txt");
-function fetchPage() {
+var TARGET_URLS = [
+    { index: "https://info.t.u-tokyo.ac.jp/index.html", rss: "https://info.t.u-tokyo.ac.jp/rss/index.xml" },
+    { index: "https://bps.t.u-tokyo.ac.jp/index.html", rss: "https://bps.t.u-tokyo.ac.jp/rss/index.xml" },
+];
+function fetchPage(url) {
     return __awaiter(this, void 0, void 0, function () {
         var response, content, error_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     _a.trys.push([0, 2, , 3]);
-                    return [4 /*yield*/, axios_1.default.get(TARGET_URL, {
+                    return [4 /*yield*/, axios_1.default.get(url, {
                             responseType: "arraybuffer", // バイナリデータとして取得
                         })];
                 case 1:
                     response = _a.sent();
-                    content = iconv.decode(response.data, "EUC-JP");
+                    content = iconv.decode(response.data, "UTF-8");
                     return [2 /*return*/, content];
                 case 2:
                     error_1 = _a.sent();
@@ -69,62 +71,88 @@ function fetchPage() {
         });
     });
 }
-function loadPreviousHash() {
-    if (fs.existsSync(CACHE_FILE))
-        return fs.readFileSync(CACHE_FILE, "utf-8").trim();
-    throw new Error("cannot read cache.");
+function loadPreviousHash(index) {
+    var cacheFile = path.join(__dirname, "cache".concat(index, ".txt"));
+    if (fs.existsSync(cacheFile))
+        return fs.readFileSync(cacheFile, "utf-8").trim();
+    return "";
 }
-function saveHash(content) {
-    fs.writeFileSync(CACHE_FILE, content, "utf-8");
+function saveHash(content, index) {
+    var cacheFile = path.join(__dirname, "cache".concat(index, ".txt"));
+    fs.writeFileSync(cacheFile, content, "utf-8");
 }
 function checkForUpdates() {
     return __awaiter(this, void 0, void 0, function () {
-        var html, $, mainContent, previousHash, mainContentLines, previousHashLines, diffFound, diff, i, now, japanTime, isKaken;
+        var isUpdated, _loop_1, i, now, japanTime;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    console.log("Checking for updates on ".concat(TARGET_URL, "..."));
-                    return [4 /*yield*/, fetchPage()];
+                    isUpdated = false;
+                    _loop_1 = function (i) {
+                        var _b, index, rss, html, $, mainContent, previousHash, mainContentLines, previousHashLines, diffFound, diff, keywords;
+                        return __generator(this, function (_c) {
+                            switch (_c.label) {
+                                case 0:
+                                    _b = TARGET_URLS[i], index = _b.index, rss = _b.rss;
+                                    console.log("Checking for updates on ".concat(rss, "..."));
+                                    return [4 /*yield*/, fetchPage(rss)];
+                                case 1:
+                                    html = _c.sent();
+                                    if (!html)
+                                        return [2 /*return*/, "continue"];
+                                    $ = cheerio.load(html);
+                                    mainContent = $("body").text().trim();
+                                    previousHash = loadPreviousHash(i);
+                                    mainContentLines = new Set(mainContent.split("\n"));
+                                    previousHashLines = new Set(previousHash.split("\n"));
+                                    diffFound = false;
+                                    diff = "";
+                                    keywords = ["科研", "期限", "重要", "研推"];
+                                    mainContentLines.forEach(function (line) {
+                                        if (!previousHashLines.has(line)) {
+                                            diffFound = true;
+                                            if (keywords.some(function (keyword) { return line.includes(keyword); })) {
+                                                line = "❗ " + line;
+                                            }
+                                            diff += line + "\n";
+                                        }
+                                    });
+                                    if (!diffFound) return [3 /*break*/, 3];
+                                    console.log("Website has been updated!");
+                                    console.log("Diff:", diff);
+                                    // 差分をSlack通知に送信
+                                    return [4 /*yield*/, (0, slackNotifier_1.sendSlackNotification)("\uD83D\uDD14 ".concat(index, " \u304C\u66F4\u65B0\u3055\u308C\u307E\u3057\u305F\uFF01\n") + diff)];
+                                case 2:
+                                    // 差分をSlack通知に送信
+                                    _c.sent();
+                                    // 最新の内容を保存
+                                    saveHash(mainContent, i);
+                                    isUpdated = true;
+                                    _c.label = 3;
+                                case 3: return [2 /*return*/];
+                            }
+                        });
+                    };
+                    i = 0;
+                    _a.label = 1;
                 case 1:
-                    html = _a.sent();
-                    if (!html)
-                        return [2 /*return*/];
-                    $ = cheerio.load(html);
-                    mainContent = $("body").text().trim();
-                    previousHash = loadPreviousHash();
-                    mainContentLines = mainContent.split("\n");
-                    previousHashLines = previousHash.split("\n");
-                    diffFound = false;
-                    diff = "";
-                    for (i = 2; i < mainContentLines.length; i++) {
-                        if (mainContentLines[i] !== previousHashLines[2]) {
-                            diffFound = true;
-                            diff += mainContentLines[i] + "\n";
-                        }
-                        else {
-                            break;
-                        }
-                    }
-                    if (!!diffFound) return [3 /*break*/, 4];
-                    console.log("No changes detected.");
-                    now = new Date();
-                    japanTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
-                    if (!(japanTime.getDay() === 5)) return [3 /*break*/, 3];
-                    return [4 /*yield*/, (0, slackNotifier_1.sendSlackNotification)("(正常に動作しているか確認用の定期メッセージです)")];
+                    if (!(i < TARGET_URLS.length)) return [3 /*break*/, 4];
+                    return [5 /*yield**/, _loop_1(i)];
                 case 2:
                     _a.sent();
                     _a.label = 3;
-                case 3: return [3 /*break*/, 6];
+                case 3:
+                    i++;
+                    return [3 /*break*/, 1];
                 case 4:
-                    console.log("Website has been updated!");
-                    isKaken = (diff.includes("科研") || diff.includes("研推")) ? "❗ 特に科研費等に関する更新です\n" : "";
-                    // 差分をSlack通知に送信
-                    return [4 /*yield*/, (0, slackNotifier_1.sendSlackNotification)("\uD83D\uDD14 https://info.t.u-tokyo.ac.jp/index_5.html \u304C\u66F4\u65B0\u3055\u308C\u307E\u3057\u305F\uFF01\n" + isKaken + diff)];
+                    if (!!isUpdated) return [3 /*break*/, 6];
+                    console.log("No changes detected.");
+                    now = new Date();
+                    japanTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
+                    if (!(japanTime.getDay() === 5)) return [3 /*break*/, 6];
+                    return [4 /*yield*/, (0, slackNotifier_1.sendSlackNotification)("(正常に動作しているか確認用の定期メッセージです)")];
                 case 5:
-                    // 差分をSlack通知に送信
                     _a.sent();
-                    // 最新の内容を保存
-                    saveHash(mainContent);
                     _a.label = 6;
                 case 6: return [2 /*return*/];
             }

@@ -17,52 +17,52 @@ https://nodejs.org/en/download
 
 2. 以下を走らせ、node_modulesをinstallする。
 
-```bash
-npm install
-```
+    ```bash
+    npm install
+    ```
 
 3. .envにSLACK_WEBHOOK_URLを記載する。セキュリティ上の理由より、localにのみ保存している。
 
-4. src/cache.txtを生成しておく。セキュリティ上の理由より、localにのみ保存している。
+4. 以下を走らせ、jsファイルを生成する。
 
-5. 以下を走らせ、jsファイルを生成する。
+   ```bash
+   npx tsc src/checkUpdates.ts
+   ```
 
-```bash
-npx tsc src/checkUpdates.ts
-```
+5. 以下で正常に走ることを確認
 
-6. 以下で正常に走ることを確認
+   ```bash
+   node src/checkUpdates.js
+   ```
 
-```bash
-node src/checkUpdates.js
-```
+6. 定期実行を設定する
 
-7. 定期実行を設定する
+   Ubuntuで1日毎にBashファイルを定期実行するには、**cronジョブ**を使うのが一般的です。以下の手順で設定できます。
 
-Ubuntuで1日毎にBashファイルを定期実行するには、**cronジョブ**を使うのが一般的です。以下の手順で設定できます。
+   ターミナルを開いて、以下のコマンドを実行します：
 
-ターミナルを開いて、以下のコマンドを実行します：
-```bash
-crontab -e
-```
-すると、エディタ（vimやnano）が開きます。
+   ```bash
+   crontab -e
+   ```
 
-例えば、`/home/fivelab/ドキュメント/HirokiHamaguchi/slackbot/run.sh` を毎日12時に実行する場合、次の行を追加します：
+   すると、エディタ（vimやnano）が開きます。
 
-```
-0 12 * * * /bin/bash /home/fivelab/ドキュメント/HirokiHamaguchi/slackbot/run.sh
-```
+   例えば、`/home/fivelab/ドキュメント/HirokiHamaguchi/slackbot/run.sh` を毎日12時に実行する場合、次の行を追加します：
 
-`crontab -l` を実行すると、設定が正しく反映されているか確認できます：
+   ```bash
+   0 12 * * * /bin/bash /home/fivelab/ドキュメント/HirokiHamaguchi/slackbot/run.sh
+   ```
 
-```bash
-crontab -l
-```
+   `crontab -l` を実行すると、設定が正しく反映されているか確認できます：
 
-`cron` が有効になっているかチェックし、停止していたら開始します：
+   ```bash
+   crontab -l
+   ```
 
-```bash
-systemctl status cron  # cronの状態を確認
-sudo systemctl start cron  # cronを開始
-sudo systemctl enable cron  # 自動起動を有効化
-```
+   `cron` が有効になっているかチェックし、停止していたら開始します：
+
+   ```bash
+   systemctl status cron  # cronの状態を確認
+   sudo systemctl start cron  # cronを開始
+   sudo systemctl enable cron  # 自動起動を有効化
+   ```

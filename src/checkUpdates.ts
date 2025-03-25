@@ -8,17 +8,19 @@ import { sendSlackNotification } from "./slackNotifier";
 
 dotenv.config();
 
-const TARGET_URL = "https://info.t.u-tokyo.ac.jp/student_other_all.html";
-const CACHE_FILE = path.join(__dirname, "cache.txt");
+const TARGET_URLS = [
+    { index: "https://info.t.u-tokyo.ac.jp/index.html", rss: "https://info.t.u-tokyo.ac.jp/rss/index.xml" },
+    { index: "https://bps.t.u-tokyo.ac.jp/index.html", rss: "https://bps.t.u-tokyo.ac.jp/rss/index.xml" },
+];
 
-async function fetchPage(): Promise<string> {
+async function fetchPage(url: string): Promise<string> {
     try {
-        const response = await axios.get(TARGET_URL, {
+        const response = await axios.get(url, {
             responseType: "arraybuffer", // バイナリデータとして取得
         });
 
         // 正しいエンコーディングを指定（対象のサイトに応じて変更）
-        const content = iconv.decode(response.data, "EUC-JP");
+        const content = iconv.decode(response.data, "UTF-8");
         return content;
     } catch (error) {
         console.error("Error fetching page:", error);
@@ -26,43 +28,66 @@ async function fetchPage(): Promise<string> {
     }
 }
 
-function loadPreviousHash(): string {
-    if (fs.existsSync(CACHE_FILE))
-        return fs.readFileSync(CACHE_FILE, "utf-8").trim();
-    throw new Error("cannot read cache.");
+function loadPreviousHash(index: number): string {
+    const cacheFile = path.join(__dirname, `cache${index}.txt`);
+    if (fs.existsSync(cacheFile))
+        return fs.readFileSync(cacheFile, "utf-8").trim();
+    return "";
 }
 
-function saveHash(content: string): void {
-    fs.writeFileSync(CACHE_FILE, content, "utf-8");
+function saveHash(content: string, index: number): void {
+    const cacheFile = path.join(__dirname, `cache${index}.txt`);
+    fs.writeFileSync(cacheFile, content, "utf-8");
 }
 
 async function checkForUpdates() {
-    console.log(`Checking for updates on ${TARGET_URL}...`);
+    let isUpdated = false;
 
-    const html = await fetchPage();
-    if (!html) return;
+    for (let i = 0; i < TARGET_URLS.length; i++) {
+        const { index, rss } = TARGET_URLS[i];
+        console.log(`Checking for updates on ${rss}...`);
 
-    const $ = cheerio.load(html);
-    const mainContent = $("body").text().trim();
-    const previousHash = loadPreviousHash();
+        const html = await fetchPage(rss);
+        if (!html) continue;
 
-    // mainContentとpreviousHashを行単位で比較して差分を抽出
-    const mainContentLines = mainContent.split("\n");
-    const previousHashLines = previousHash.split("\n");
+        const $ = cheerio.load(html);
+        const mainContent = $("body").text().trim();
+        const previousHash = loadPreviousHash(i);
 
-    let diffFound = false;
-    let diff = "";
+        // mainContentとpreviousHashを行単位で比較して差分を抽出
+        const mainContentLines = new Set(mainContent.split("\n"));
+        const previousHashLines = new Set(previousHash.split("\n"));
 
-    for (let i = 2; i < mainContentLines.length; i++) {
-        if (mainContentLines[i] !== previousHashLines[2]) {
-            diffFound = true;
-            diff += mainContentLines[i] + "\n";
-        } else {
-            break;
+        let diffFound = false;
+        let diff = "";
+
+        const keywords = ["科研", "期限", "重要", "研推"];
+
+        mainContentLines.forEach(line => {
+            if (!previousHashLines.has(line)) {
+                diffFound = true;
+                if (keywords.some(keyword => line.includes(keyword))) {
+                    line = "❗ " + line;
+                }
+                diff += line + "\n";
+            }
+        });
+
+        if (diffFound) {
+            console.log("Website has been updated!");
+            console.log("Diff:", diff);
+
+            // 差分をSlack通知に送信
+            await sendSlackNotification(`🔔 ${index} が更新されました！\n` + diff);
+
+            // 最新の内容を保存
+            saveHash(mainContent, i);
+
+            isUpdated = true;
         }
     }
 
-    if (!diffFound) {
+    if (!isUpdated) {
         console.log("No changes detected.");
 
         const now = new Date();
@@ -71,20 +96,7 @@ async function checkForUpdates() {
         if (japanTime.getDay() === 5) {
             await sendSlackNotification("(正常に動作しているか確認用の定期メッセージです)");
         }
-
-    } else {
-        console.log("Website has been updated!");
-
-        // 科研に関する更新がある場合はisKakenを設定
-        const isKaken = (diff.includes("科研") || diff.includes("研推")) ? "❗ 特に科研費等に関する更新です\n" : "";
-
-        // 差分をSlack通知に送信
-        await sendSlackNotification(`🔔 https://info.t.u-tokyo.ac.jp/index_5.html が更新されました！\n` + isKaken + diff);
-
-        // 最新の内容を保存
-        saveHash(mainContent);
     }
 }
-
 
 checkForUpdates();
