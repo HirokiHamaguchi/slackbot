@@ -68,9 +68,9 @@ async function checkForUpdates() {
         const now = new Date();
         const japanTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
 
-        // if (japanTime.getDay() === 5) {
-        await sendSlackNotification("(正常に動作しているか確認用の定期メッセージです)");
-        // }
+        if (japanTime.getDay() === 5) {
+            await sendSlackNotification("(正常に動作しているか確認用の定期メッセージです)");
+        }
 
     } else {
         console.log("Website has been updated!");

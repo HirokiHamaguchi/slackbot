@@ -117,7 +117,7 @@ function checkForUpdates() {
                 case 3: return [3 /*break*/, 6];
                 case 4:
                     console.log("Website has been updated!");
-                    isKaken = diff.includes("科研") ? "❗ 特に科研費に関する更新です\n" : "";
+                    isKaken = (diff.includes("科研") || diff.includes("研推")) ? "❗ 特に科研費等に関する更新です\n" : "";
                     // 差分をSlack通知に送信
                     return [4 /*yield*/, (0, slackNotifier_1.sendSlackNotification)("\uD83D\uDD14 https://info.t.u-tokyo.ac.jp/index_5.html \u304C\u66F4\u65B0\u3055\u308C\u307E\u3057\u305F\uFF01\n" + isKaken + diff)];
                 case 5:
