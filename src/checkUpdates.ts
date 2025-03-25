@@ -68,15 +68,15 @@ async function checkForUpdates() {
         const now = new Date();
         const japanTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
 
-        if (japanTime.getDay() === 5) {
-            await sendSlackNotification("(正常に動作しているか確認用の定期メッセージです)");
-        }
+        // if (japanTime.getDay() === 5) {
+        await sendSlackNotification("(正常に動作しているか確認用の定期メッセージです)");
+        // }
 
     } else {
         console.log("Website has been updated!");
 
         // 科研に関する更新がある場合はisKakenを設定
-        const isKaken = diff.includes("科研") ? "❗ 特に科研費に関する更新です\n" : "";
+        const isKaken = (diff.includes("科研") || diff.includes("研推")) ? "❗ 特に科研費等に関する更新です\n" : "";
 
         // 差分をSlack通知に送信
         await sendSlackNotification(`🔔 https://info.t.u-tokyo.ac.jp/index_5.html が更新されました！\n` + isKaken + diff);
