@@ -83,7 +83,7 @@ function saveHash(content, index) {
 }
 function checkForUpdates() {
     return __awaiter(this, void 0, void 0, function () {
-        var isUpdated, _loop_1, i, now, japanTime;
+        var isUpdated, _loop_1, i;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -145,16 +145,10 @@ function checkForUpdates() {
                     i++;
                     return [3 /*break*/, 1];
                 case 4:
-                    if (!!isUpdated) return [3 /*break*/, 6];
-                    console.log("No changes detected.");
-                    now = new Date();
-                    japanTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Tokyo" }));
-                    if (!(japanTime.getDay() === 5)) return [3 /*break*/, 6];
-                    return [4 /*yield*/, (0, slackNotifier_1.sendSlackNotification)("(正常に動作しているか確認用の定期メッセージです)")];
-                case 5:
-                    _a.sent();
-                    _a.label = 6;
-                case 6: return [2 /*return*/];
+                    if (!isUpdated) {
+                        console.log("No changes detected.");
+                    }
+                    return [2 /*return*/];
             }
         });
     });
