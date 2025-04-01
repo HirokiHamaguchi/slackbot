@@ -1,1 +1,2 @@
-node ./src/checkUpdates.js | tee "/home/fivelab/ドキュメント/HirokiHamaguchi/slackbot/log/$(date +'%Y-%m-%d_%H-%M-%S').log"
+cd /home/fivelab/ドキュメント/HirokiHamaguchi/slackbot
+node src/checkUpdates.js | tee "log/$(date +'%Y-%m-%d_%H-%M-%S').log"
