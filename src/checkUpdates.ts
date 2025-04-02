@@ -43,6 +43,16 @@ function saveHash(content: string, index: number): void {
 async function checkForUpdates() {
     let isUpdated = false;
 
+    const previousHashLines = new Set<string>();
+
+    for (let i = 0; i < TARGET_URLS.length; i++) {
+        const previousHash = loadPreviousHash(i);
+        const previousHashLinesI = new Set(previousHash.split("\n"));
+        previousHashLinesI.forEach(line => {
+            previousHashLines.add(line);
+        });
+    }
+
     for (let i = 0; i < TARGET_URLS.length; i++) {
         const { index, rss } = TARGET_URLS[i];
         console.log(`Checking for updates on ${rss}...`);
@@ -52,25 +62,39 @@ async function checkForUpdates() {
 
         const $ = cheerio.load(html);
         const mainContent = $("body").text().trim();
-        const previousHash = loadPreviousHash(i);
 
-        // mainContentとpreviousHashを行単位で比較して差分を抽出
         const mainContentLines = new Set(mainContent.split("\n"));
-        const previousHashLines = new Set(previousHash.split("\n"));
 
         let diffFound = false;
         let diff = "";
 
-        const keywords = ["科研", "期限", "重要", "研推"];
+        const excludeWords = ["実験", "集中講義"];
+        const includeWords = ["科研", "期限", "重要", "研推", "学振"];
 
+        let skipNext = false;
         mainContentLines.forEach(line => {
+            if (skipNext) {
+                skipNext = false;
+                return;
+            }
             if (!previousHashLines.has(line)) {
-                diffFound = true;
-                if (keywords.some(keyword => line.includes(keyword))) {
+                if (excludeWords.some(keyword => line.includes(keyword))) {
+                    skipNext = true;
+                    return;
+                }
+                if (includeWords.some(keyword => line.includes(keyword))) {
                     line = "❗ " + line;
                 }
+                line = line.replace(/<[^>]*>/g, ""); // HTMLタグを除去
+                line = line.replace(/&lt;br&gt;&lt;font size=-1&gt;/g, "");
+                line = line.replace(/&lt;\/font&gt;/g, "");
                 diff += line + "\n";
+                diffFound = true;
             }
+        });
+
+        mainContentLines.forEach(line => {
+            previousHashLines.add(line);
         });
 
         if (diffFound) {

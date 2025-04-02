@@ -83,13 +83,21 @@ function saveHash(content, index) {
 }
 function checkForUpdates() {
     return __awaiter(this, void 0, void 0, function () {
-        var isUpdated, _loop_1, i;
+        var isUpdated, previousHashLines, i, previousHash, previousHashLinesI, _loop_1, i;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     isUpdated = false;
+                    previousHashLines = new Set();
+                    for (i = 0; i < TARGET_URLS.length; i++) {
+                        previousHash = loadPreviousHash(i);
+                        previousHashLinesI = new Set(previousHash.split("\n"));
+                        previousHashLinesI.forEach(function (line) {
+                            previousHashLines.add(line);
+                        });
+                    }
                     _loop_1 = function (i) {
-                        var _b, index, rss, html, $, mainContent, previousHash, mainContentLines, previousHashLines, diffFound, diff, keywords;
+                        var _b, index, rss, html, $, mainContent, mainContentLines, diffFound, diff, excludeWords, includeWords, skipNext;
                         return __generator(this, function (_c) {
                             switch (_c.label) {
                                 case 0:
@@ -102,20 +110,34 @@ function checkForUpdates() {
                                         return [2 /*return*/, "continue"];
                                     $ = cheerio.load(html);
                                     mainContent = $("body").text().trim();
-                                    previousHash = loadPreviousHash(i);
                                     mainContentLines = new Set(mainContent.split("\n"));
-                                    previousHashLines = new Set(previousHash.split("\n"));
                                     diffFound = false;
                                     diff = "";
-                                    keywords = ["科研", "期限", "重要", "研推"];
+                                    excludeWords = ["実験", "集中講義"];
+                                    includeWords = ["科研", "期限", "重要", "研推", "学振"];
+                                    skipNext = false;
                                     mainContentLines.forEach(function (line) {
+                                        if (skipNext) {
+                                            skipNext = false;
+                                            return;
+                                        }
                                         if (!previousHashLines.has(line)) {
-                                            diffFound = true;
-                                            if (keywords.some(function (keyword) { return line.includes(keyword); })) {
+                                            if (excludeWords.some(function (keyword) { return line.includes(keyword); })) {
+                                                skipNext = true;
+                                                return;
+                                            }
+                                            if (includeWords.some(function (keyword) { return line.includes(keyword); })) {
                                                 line = "❗ " + line;
                                             }
+                                            line = line.replace(/<[^>]*>/g, ""); // HTMLタグを除去
+                                            line = line.replace(/&lt;br&gt;&lt;font size=-1&gt;/g, "");
+                                            line = line.replace(/&lt;\/font&gt;/g, "");
                                             diff += line + "\n";
+                                            diffFound = true;
                                         }
+                                    });
+                                    mainContentLines.forEach(function (line) {
+                                        previousHashLines.add(line);
                                     });
                                     if (!diffFound) return [3 /*break*/, 3];
                                     console.log("Website has been updated!");
