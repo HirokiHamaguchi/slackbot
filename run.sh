@@ -6,4 +6,4 @@ if [ -d "$FNM_PATH" ]; then
   eval "`fnm env`"
 fi
 
-/run/user/1000/fnm_multishells/3010412_1744170021080/bin/node /home/fivelab/ドキュメント/HirokiHamaguchi/slackbot/src/checkUpdates.js | /usr/bin/tee "/home/fivelab/ドキュメント/HirokiHamaguchi/slackbot/log/$(date +'%Y-%m-%d_%H-%M-%S').log"
+/home/fivelab/.local/share/fnm/aliases/default/bin/node /home/fivelab/ドキュメント/HirokiHamaguchi/slackbot/src/checkUpdates.js | /usr/bin/tee "/home/fivelab/ドキュメント/HirokiHamaguchi/slackbot/log/$(date +'%Y-%m-%d_%H-%M-%S').log"
