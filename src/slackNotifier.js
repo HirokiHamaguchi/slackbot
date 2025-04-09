@@ -39,7 +39,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendSlackNotification = sendSlackNotification;
 var axios_1 = require("axios");
 var dotenv = require("dotenv");
-dotenv.config();
+var path = require("path");
+dotenv.config({
+    path: path.resolve('/home/fivelab/ドキュメント/HirokiHamaguchi/slackbot/.env')
+});
 var SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
 if (!SLACK_WEBHOOK_URL) {
     console.error("Error: SLACK_WEBHOOK_URL is not set in .env file");

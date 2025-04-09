@@ -1,7 +1,12 @@
 import axios from "axios";
 import * as dotenv from "dotenv";
+import * as path from "path";
 
-dotenv.config();
+dotenv.config(
+    {
+        path: path.resolve('/home/fivelab/ドキュメント/HirokiHamaguchi/slackbot/.env')
+    }
+);
 
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL as string;
 
