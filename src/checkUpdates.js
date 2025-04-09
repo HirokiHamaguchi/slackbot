@@ -113,8 +113,8 @@ function checkForUpdates() {
                                     mainContentLines = new Set(mainContent.split("\n"));
                                     diffFound = false;
                                     diff = "";
-                                    excludeWords = ["実験", "集中講義"];
-                                    includeWords = ["科研", "期限", "重要", "研推", "学振"];
+                                    excludeWords = ["実験", "集中講義", "厚労省", "ＡＭＥＤ"];
+                                    includeWords = ["科研", "期限", "重要", "研推", "学振", "旅費"];
                                     skipNext = false;
                                     mainContentLines.forEach(function (line) {
                                         if (skipNext) {
