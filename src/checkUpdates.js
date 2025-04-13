@@ -42,7 +42,6 @@ var fs = require("fs");
 var path = require("path");
 var iconv = require("iconv-lite");
 var dotenv = require("dotenv");
-var slackNotifier_1 = require("./slackNotifier");
 dotenv.config({
     path: path.resolve('/home/fivelab/ドキュメント/HirokiHamaguchi/slackbot/.env')
 });
@@ -85,93 +84,98 @@ function saveHash(content, index) {
 }
 function checkForUpdates() {
     return __awaiter(this, void 0, void 0, function () {
-        var isUpdated, previousHashLines, i, previousHash, previousHashLinesI, _loop_1, i;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
+        var isUpdated, previousHashLines, _loop_1, i, i, _a, index, rss, html, $, mainContent, lines, ja_idx, j, diff, excludeWords, includeWords, _loop_2, j;
+        return __generator(this, function (_b) {
+            switch (_b.label) {
                 case 0:
                     isUpdated = false;
                     previousHashLines = new Set();
-                    for (i = 0; i < TARGET_URLS.length; i++) {
-                        previousHash = loadPreviousHash(i);
-                        previousHashLinesI = new Set(previousHash.split("\n"));
-                        previousHashLinesI.forEach(function (line) {
-                            previousHashLines.add(line);
-                        });
-                    }
                     _loop_1 = function (i) {
-                        var _b, index, rss, html, $, mainContent, mainContentLines, diffFound, diff, excludeWords, includeWords, skipNext;
-                        return __generator(this, function (_c) {
-                            switch (_c.label) {
-                                case 0:
-                                    _b = TARGET_URLS[i], index = _b.index, rss = _b.rss;
-                                    console.log("Checking for updates on ".concat(rss, "..."));
-                                    return [4 /*yield*/, fetchPage(rss)];
-                                case 1:
-                                    html = _c.sent();
-                                    if (!html)
-                                        return [2 /*return*/, "continue"];
-                                    $ = cheerio.load(html);
-                                    mainContent = $("body").text().trim();
-                                    mainContentLines = new Set(mainContent.split("\n"));
-                                    diffFound = false;
-                                    diff = "";
-                                    excludeWords = ["実験", "集中講義", "厚労省", "ＡＭＥＤ"];
-                                    includeWords = ["科研", "期限", "重要", "研推", "学振", "旅費"];
-                                    skipNext = false;
-                                    mainContentLines.forEach(function (line) {
-                                        if (skipNext) {
-                                            skipNext = false;
-                                            return;
-                                        }
-                                        if (!previousHashLines.has(line)) {
-                                            if (excludeWords.some(function (keyword) { return line.includes(keyword); })) {
-                                                skipNext = true;
-                                                return;
-                                            }
-                                            if (includeWords.some(function (keyword) { return line.includes(keyword); })) {
-                                                line = "❗ " + line;
-                                            }
-                                            line = line.replace(/<[^>]*>/g, ""); // HTMLタグを除去
-                                            line = line.replace(/&lt;br&gt;&lt;font size=-1&gt;/g, "");
-                                            line = line.replace(/&lt;\/font&gt;/g, "");
-                                            diff += line + "\n";
-                                            diffFound = true;
-                                        }
-                                    });
-                                    mainContentLines.forEach(function (line) {
-                                        previousHashLines.add(line);
-                                    });
-                                    if (!diffFound) return [3 /*break*/, 3];
-                                    console.log("Website has been updated!");
-                                    console.log("Diff:", diff);
-                                    // 差分をSlack通知に送信
-                                    return [4 /*yield*/, (0, slackNotifier_1.sendSlackNotification)("\uD83D\uDD14 ".concat(index, " \u304C\u66F4\u65B0\u3055\u308C\u307E\u3057\u305F\uFF01\n") + diff)];
-                                case 2:
-                                    // 差分をSlack通知に送信
-                                    _c.sent();
-                                    // 最新の内容を保存
-                                    saveHash(mainContent, i);
-                                    isUpdated = true;
-                                    _c.label = 3;
-                                case 3: return [2 /*return*/];
-                            }
+                        var previousHash = loadPreviousHash(i);
+                        var previousHashLines_1 = new Set(previousHash.split("\n").map(function (line) { return line.trim(); }));
+                        previousHashLines_1.forEach(function (line) {
+                            if (!line.startsWith("http"))
+                                return; // URL以外の行は無視
+                            var id = line.split("/").pop() || line;
+                            previousHashLines_1.add(id);
                         });
                     };
+                    for (i = 0; i < TARGET_URLS.length; i++) {
+                        _loop_1(i);
+                    }
                     i = 0;
-                    _a.label = 1;
+                    _b.label = 1;
                 case 1:
                     if (!(i < TARGET_URLS.length)) return [3 /*break*/, 4];
-                    return [5 /*yield**/, _loop_1(i)];
+                    _a = TARGET_URLS[i], index = _a.index, rss = _a.rss;
+                    console.log("Checking for updates on ".concat(rss, "..."));
+                    return [4 /*yield*/, fetchPage(rss)];
                 case 2:
-                    _a.sent();
-                    _a.label = 3;
+                    html = _b.sent();
+                    if (!html)
+                        return [3 /*break*/, 3];
+                    $ = cheerio.load(html);
+                    mainContent = $("body").text().trim();
+                    // 最新の内容を保存
+                    saveHash(mainContent, i);
+                    lines = mainContent
+                        .split("\n")
+                        .map(function (line) { return line.trim(); })
+                        .filter(function (line) { return line !== ""; });
+                    ja_idx = 0;
+                    for (j = 0; j < lines.length; j++) {
+                        if (lines[j] === "ja") {
+                            ja_idx = j;
+                            break;
+                        }
+                    }
+                    lines = lines.slice(ja_idx + 1);
+                    if (lines.length % 2 !== 0) {
+                        console.warn("Line count not even, skipping...");
+                        return [3 /*break*/, 3];
+                    }
+                    diff = "";
+                    excludeWords = ["実験", "集中講義", "厚労省", "ＡＭＥＤ"];
+                    includeWords = ["科研", "期限", "重要", "研推", "学振", "旅費", "JSPS"];
+                    _loop_2 = function (j) {
+                        var desc = lines[j];
+                        var url = lines[j + 1];
+                        if (excludeWords.some(function (keyword) { return desc.includes(keyword); })) {
+                            return "continue";
+                        }
+                        if (includeWords.some(function (keyword) { return desc.includes(keyword); })) {
+                            desc = "❗ " + desc;
+                        }
+                        desc = desc.replace(/<[^>]*>/g, ""); // HTMLタグを除去
+                        desc = desc.replace(/&lt;br&gt;&lt;font size=-1&gt;/g, "");
+                        desc = desc.replace(/&lt;\/font&gt;/g, "");
+                        console.assert(url.startsWith("http"), "URLが不正です:", url);
+                        var id = url.split("/").pop() || url;
+                        if (!previousHashLines.has(id)) {
+                            diff += desc + "\n" + url + "\n";
+                            previousHashLines.add(id);
+                        }
+                    };
+                    for (j = 0; j < lines.length; j += 2) {
+                        _loop_2(j);
+                    }
+                    if (diff) {
+                        console.log("Website has been updated!");
+                        console.log("Diff:", diff);
+                        // // 差分をSlack通知に送信
+                        // await sendSlackNotification(`🔔 ${index} が更新されました！\n` + diff);
+                        isUpdated = true;
+                    }
+                    else {
+                        console.log("No changes detected.");
+                    }
+                    _b.label = 3;
                 case 3:
                     i++;
                     return [3 /*break*/, 1];
                 case 4:
-                    if (!isUpdated) {
-                        console.log("No changes detected.");
-                    }
+                    // console.log("hashes:", previousHashLines);
+                    console.log("Done.");
                     return [2 /*return*/];
             }
         });

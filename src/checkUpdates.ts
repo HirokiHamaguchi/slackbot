@@ -51,9 +51,11 @@ async function checkForUpdates() {
 
     for (let i = 0; i < TARGET_URLS.length; i++) {
         const previousHash = loadPreviousHash(i);
-        const previousHashLinesI = new Set(previousHash.split("\n"));
-        previousHashLinesI.forEach(line => {
-            previousHashLines.add(line);
+        const previousHashLines = new Set(previousHash.split("\n").map(line => line.trim()));
+        previousHashLines.forEach(line => {
+            if (!line.startsWith("http")) return; // URL以外の行は無視
+            const id = line.split("/").pop() || line;
+            previousHashLines.add(id);
         });
     }
 
@@ -67,57 +69,69 @@ async function checkForUpdates() {
         const $ = cheerio.load(html);
         const mainContent = $("body").text().trim();
 
-        const mainContentLines = new Set(mainContent.split("\n"));
+        // 最新の内容を保存
+        saveHash(mainContent, i);
 
-        let diffFound = false;
+        let lines = mainContent
+            .split("\n")
+            .map(line => line.trim())
+            .filter(line => line !== "");
+
+        let ja_idx = 0;
+        for (let j = 0; j < lines.length; j++) {
+            if (lines[j] === "ja") {
+                ja_idx = j;
+                break;
+            }
+        }
+        lines = lines.slice(ja_idx + 1);
+
+        if (lines.length % 2 !== 0) {
+            console.warn("Line count not even, skipping...");
+            continue;
+        }
+
         let diff = "";
 
         const excludeWords = ["実験", "集中講義", "厚労省", "ＡＭＥＤ"];
-        const includeWords = ["科研", "期限", "重要", "研推", "学振", "旅費"];
+        const includeWords = ["科研", "期限", "重要", "研推", "学振", "旅費", "JSPS"];
 
-        let skipNext = false;
-        mainContentLines.forEach(line => {
-            if (skipNext) {
-                skipNext = false;
-                return;
+        for (let j = 0; j < lines.length; j += 2) {
+            let desc = lines[j];
+            const url = lines[j + 1];
+            if (excludeWords.some(keyword => desc.includes(keyword))) {
+                continue;
             }
-            if (!previousHashLines.has(line)) {
-                if (excludeWords.some(keyword => line.includes(keyword))) {
-                    skipNext = true;
-                    return;
-                }
-                if (includeWords.some(keyword => line.includes(keyword))) {
-                    line = "❗ " + line;
-                }
-                line = line.replace(/<[^>]*>/g, ""); // HTMLタグを除去
-                line = line.replace(/&lt;br&gt;&lt;font size=-1&gt;/g, "");
-                line = line.replace(/&lt;\/font&gt;/g, "");
-                diff += line + "\n";
-                diffFound = true;
+            if (includeWords.some(keyword => desc.includes(keyword))) {
+                desc = "❗ " + desc;
             }
-        });
+            desc = desc.replace(/<[^>]*>/g, ""); // HTMLタグを除去
+            desc = desc.replace(/&lt;br&gt;&lt;font size=-1&gt;/g, "");
+            desc = desc.replace(/&lt;\/font&gt;/g, "");
 
-        mainContentLines.forEach(line => {
-            previousHashLines.add(line);
-        });
+            console.assert(url.startsWith("http"), "URLが不正です:", url);
+            const id = url.split("/").pop() || url;
+            if (!previousHashLines.has(id)) {
+                diff += desc + "\n" + url + "\n";
+                previousHashLines.add(id);
+            }
+        }
 
-        if (diffFound) {
+        if (diff) {
             console.log("Website has been updated!");
             console.log("Diff:", diff);
 
-            // 差分をSlack通知に送信
-            await sendSlackNotification(`🔔 ${index} が更新されました！\n` + diff);
-
-            // 最新の内容を保存
-            saveHash(mainContent, i);
+            // // 差分をSlack通知に送信
+            // await sendSlackNotification(`🔔 ${index} が更新されました！\n` + diff);
 
             isUpdated = true;
+        } else {
+            console.log("No changes detected.");
         }
     }
 
-    if (!isUpdated) {
-        console.log("No changes detected.");
-    }
+    // console.log("hashes:", previousHashLines);
+    console.log("Done.");
 }
 
 checkForUpdates();
