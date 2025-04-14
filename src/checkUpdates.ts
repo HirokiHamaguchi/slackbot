@@ -121,8 +121,8 @@ async function checkForUpdates() {
             console.log("Website has been updated!");
             console.log("Diff:", diff);
 
-            // // 差分をSlack通知に送信
-            // await sendSlackNotification(`🔔 ${index} が更新されました！\n` + diff);
+            // 差分をSlack通知に送信
+            await sendSlackNotification(`🔔 ${index} が更新されました！\n` + diff);
 
             isUpdated = true;
         } else {

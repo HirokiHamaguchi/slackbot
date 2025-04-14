@@ -42,6 +42,7 @@ var fs = require("fs");
 var path = require("path");
 var iconv = require("iconv-lite");
 var dotenv = require("dotenv");
+var slackNotifier_1 = require("./slackNotifier");
 dotenv.config({
     path: path.resolve('/home/fivelab/ドキュメント/HirokiHamaguchi/slackbot/.env')
 });
@@ -106,14 +107,14 @@ function checkForUpdates() {
                     i = 0;
                     _b.label = 1;
                 case 1:
-                    if (!(i < TARGET_URLS.length)) return [3 /*break*/, 4];
+                    if (!(i < TARGET_URLS.length)) return [3 /*break*/, 6];
                     _a = TARGET_URLS[i], index = _a.index, rss = _a.rss;
                     console.log("Checking for updates on ".concat(rss, "..."));
                     return [4 /*yield*/, fetchPage(rss)];
                 case 2:
                     html = _b.sent();
                     if (!html)
-                        return [3 /*break*/, 3];
+                        return [3 /*break*/, 5];
                     $ = cheerio.load(html);
                     mainContent = $("body").text().trim();
                     // 最新の内容を保存
@@ -132,7 +133,7 @@ function checkForUpdates() {
                     lines = lines.slice(ja_idx + 1);
                     if (lines.length % 2 !== 0) {
                         console.warn("Line count not even, skipping...");
-                        return [3 /*break*/, 3];
+                        return [3 /*break*/, 5];
                     }
                     diff = "";
                     excludeWords = ["実験", "集中講義", "厚労省", "ＡＭＥＤ"];
@@ -159,21 +160,23 @@ function checkForUpdates() {
                     for (j = 0; j < lines.length; j += 2) {
                         _loop_2(j);
                     }
-                    if (diff) {
-                        console.log("Website has been updated!");
-                        console.log("Diff:", diff);
-                        // // 差分をSlack通知に送信
-                        // await sendSlackNotification(`🔔 ${index} が更新されました！\n` + diff);
-                        isUpdated = true;
-                    }
-                    else {
-                        console.log("No changes detected.");
-                    }
-                    _b.label = 3;
+                    if (!diff) return [3 /*break*/, 4];
+                    console.log("Website has been updated!");
+                    console.log("Diff:", diff);
+                    // 差分をSlack通知に送信
+                    return [4 /*yield*/, (0, slackNotifier_1.sendSlackNotification)("\uD83D\uDD14 ".concat(index, " \u304C\u66F4\u65B0\u3055\u308C\u307E\u3057\u305F\uFF01\n") + diff)];
                 case 3:
+                    // 差分をSlack通知に送信
+                    _b.sent();
+                    isUpdated = true;
+                    return [3 /*break*/, 5];
+                case 4:
+                    console.log("No changes detected.");
+                    _b.label = 5;
+                case 5:
                     i++;
                     return [3 /*break*/, 1];
-                case 4:
+                case 6:
                     // console.log("hashes:", previousHashLines);
                     console.log("Done.");
                     return [2 /*return*/];
