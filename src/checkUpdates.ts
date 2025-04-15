@@ -45,9 +45,7 @@ function saveHash(content: string, index: number): void {
 }
 
 async function checkForUpdates() {
-    let isUpdated = false;
-
-    const previousHashLines = new Set<string>();
+    const previousHashIds = new Set<string>();
 
     for (let i = 0; i < TARGET_URLS.length; i++) {
         const previousHash = loadPreviousHash(i);
@@ -55,7 +53,7 @@ async function checkForUpdates() {
         previousHashLines.forEach(line => {
             if (!line.startsWith("http")) return; // URL以外の行は無視
             const id = line.split("/").pop() || line;
-            previousHashLines.add(id);
+            previousHashIds.add(id);
         });
     }
 
@@ -111,9 +109,9 @@ async function checkForUpdates() {
 
             console.assert(url.startsWith("http"), "URLが不正です:", url);
             const id = url.split("/").pop() || url;
-            if (!previousHashLines.has(id)) {
+            if (!previousHashIds.has(id)) {
                 diff += desc + "\n" + url + "\n";
-                previousHashLines.add(id);
+                previousHashIds.add(id);
             }
         }
 
@@ -123,14 +121,11 @@ async function checkForUpdates() {
 
             // 差分をSlack通知に送信
             await sendSlackNotification(`🔔 ${index} が更新されました！\n` + diff);
-
-            isUpdated = true;
         } else {
             console.log("No changes detected.");
         }
     }
 
-    // console.log("hashes:", previousHashLines);
     console.log("Done.");
 }
 

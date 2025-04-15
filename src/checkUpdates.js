@@ -85,24 +85,20 @@ function saveHash(content, index) {
 }
 function checkForUpdates() {
     return __awaiter(this, void 0, void 0, function () {
-        var isUpdated, previousHashLines, _loop_1, i, i, _a, index, rss, html, $, mainContent, lines, ja_idx, j, diff, excludeWords, includeWords, _loop_2, j;
+        var previousHashIds, i, previousHash, previousHashLines, i, _a, index, rss, html, $, mainContent, lines, ja_idx, j, diff, excludeWords, includeWords, _loop_1, j;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
-                    isUpdated = false;
-                    previousHashLines = new Set();
-                    _loop_1 = function (i) {
-                        var previousHash = loadPreviousHash(i);
-                        var previousHashLines_1 = new Set(previousHash.split("\n").map(function (line) { return line.trim(); }));
-                        previousHashLines_1.forEach(function (line) {
+                    previousHashIds = new Set();
+                    for (i = 0; i < TARGET_URLS.length; i++) {
+                        previousHash = loadPreviousHash(i);
+                        previousHashLines = new Set(previousHash.split("\n").map(function (line) { return line.trim(); }));
+                        previousHashLines.forEach(function (line) {
                             if (!line.startsWith("http"))
                                 return; // URL以外の行は無視
                             var id = line.split("/").pop() || line;
-                            previousHashLines_1.add(id);
+                            previousHashIds.add(id);
                         });
-                    };
-                    for (i = 0; i < TARGET_URLS.length; i++) {
-                        _loop_1(i);
                     }
                     i = 0;
                     _b.label = 1;
@@ -138,7 +134,7 @@ function checkForUpdates() {
                     diff = "";
                     excludeWords = ["実験", "集中講義", "厚労省", "ＡＭＥＤ"];
                     includeWords = ["科研", "期限", "重要", "研推", "学振", "旅費", "JSPS"];
-                    _loop_2 = function (j) {
+                    _loop_1 = function (j) {
                         var desc = lines[j];
                         var url = lines[j + 1];
                         if (excludeWords.some(function (keyword) { return desc.includes(keyword); })) {
@@ -152,13 +148,13 @@ function checkForUpdates() {
                         desc = desc.replace(/&lt;\/font&gt;/g, "");
                         console.assert(url.startsWith("http"), "URLが不正です:", url);
                         var id = url.split("/").pop() || url;
-                        if (!previousHashLines.has(id)) {
+                        if (!previousHashIds.has(id)) {
                             diff += desc + "\n" + url + "\n";
-                            previousHashLines.add(id);
+                            previousHashIds.add(id);
                         }
                     };
                     for (j = 0; j < lines.length; j += 2) {
-                        _loop_2(j);
+                        _loop_1(j);
                     }
                     if (!diff) return [3 /*break*/, 4];
                     console.log("Website has been updated!");
@@ -168,7 +164,6 @@ function checkForUpdates() {
                 case 3:
                     // 差分をSlack通知に送信
                     _b.sent();
-                    isUpdated = true;
                     return [3 /*break*/, 5];
                 case 4:
                     console.log("No changes detected.");
@@ -177,7 +172,6 @@ function checkForUpdates() {
                     i++;
                     return [3 /*break*/, 1];
                 case 6:
-                    // console.log("hashes:", previousHashLines);
                     console.log("Done.");
                     return [2 /*return*/];
             }
