@@ -91,7 +91,7 @@ async function checkForUpdates() {
 
         let diff = "";
 
-        const excludeWords = ["実験", "集中講義", "厚労省", "ＡＭＥＤ"];
+        const excludeWords = ["実験", "集中講義", "厚労省", "ＡＭＥＤ", "表彰・賞", "週刊"];
         const includeWords = ["科研", "期限", "重要", "研推", "学振", "旅費", "JSPS"];
 
         for (let j = 0; j < lines.length; j += 2) {
