@@ -62,7 +62,6 @@ https://nodejs.org/en/download
    sudo systemctl enable cron  # 自動起動を有効化
    ```
 
-
 なお、`run.sh`では、nodeの不変な絶対パスを指定する必要がある。
 
 `which node`で確認できるパス (e.g., /run/user/1000/fnm_multishells/874222_1744677080484/bin/node) は使っては駄目。これは実行毎に変わってしまう。

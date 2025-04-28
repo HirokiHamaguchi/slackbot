@@ -132,7 +132,7 @@ function checkForUpdates() {
                         return [3 /*break*/, 5];
                     }
                     diff = "";
-                    excludeWords = ["実験", "集中講義", "厚労省", "ＡＭＥＤ", "表彰・賞", "週刊"];
+                    excludeWords = ["実験", "集中講義", "厚労省", "ＡＭＥＤ", "表彰・賞", "週刊", "国推/交流", "留学", "セミナー", "シンポジウム"];
                     includeWords = ["科研", "期限", "重要", "研推", "学振", "旅費", "JSPS"];
                     _loop_1 = function (j) {
                         var desc = lines[j];
