@@ -4,7 +4,7 @@ import * as path from "path";
 
 dotenv.config(
     {
-        path: path.resolve('/home/fivelab/ドキュメント/HirokiHamaguchi/slackbot/.env')
+        path: path.resolve('/home/hiroki/ドキュメント/slackbot/.env')
     }
 );
 

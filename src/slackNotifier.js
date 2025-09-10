@@ -41,7 +41,7 @@ var axios_1 = require("axios");
 var dotenv = require("dotenv");
 var path = require("path");
 dotenv.config({
-    path: path.resolve('/home/fivelab/ドキュメント/HirokiHamaguchi/slackbot/.env')
+    path: path.resolve('/home/hiroki/ドキュメント/slackbot/.env')
 });
 var SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
 if (!SLACK_WEBHOOK_URL) {

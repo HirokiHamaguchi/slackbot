@@ -3,14 +3,8 @@ import * as cheerio from "cheerio";
 import * as fs from "fs";
 import * as path from "path";
 import * as iconv from "iconv-lite";
-import * as dotenv from "dotenv";
 import { sendSlackNotification } from "./slackNotifier";
 
-dotenv.config(
-    {
-        path: path.resolve('/home/fivelab/ドキュメント/HirokiHamaguchi/slackbot/.env')
-    }
-);
 
 const TARGET_URLS = [
     { index: "https://info.t.u-tokyo.ac.jp/index.html", rss: "https://info.t.u-tokyo.ac.jp/rss/index.xml" },

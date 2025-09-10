@@ -41,11 +41,7 @@ var cheerio = require("cheerio");
 var fs = require("fs");
 var path = require("path");
 var iconv = require("iconv-lite");
-var dotenv = require("dotenv");
 var slackNotifier_1 = require("./slackNotifier");
-dotenv.config({
-    path: path.resolve('/home/fivelab/ドキュメント/HirokiHamaguchi/slackbot/.env')
-});
 var TARGET_URLS = [
     { index: "https://info.t.u-tokyo.ac.jp/index.html", rss: "https://info.t.u-tokyo.ac.jp/rss/index.xml" },
     { index: "https://bps.t.u-tokyo.ac.jp/index.html", rss: "https://bps.t.u-tokyo.ac.jp/rss/index.xml" },
