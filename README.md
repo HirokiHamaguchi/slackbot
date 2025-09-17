@@ -34,6 +34,9 @@ https://nodejs.org/en/download
 
   https://faq.nec-lavie.jp/fa/qa/web/knowledge23511.html
 
+  プログラム: powershell.exe
+  引数の追加: -ExecutionPolicy Bypass -File C:\Users\5lab\Documents\HirokiHamaguchi\slackbot\run.ps1
+
 
 なお、`run.ps1`では、nodeの不変な絶対パスを指定する必要がある。
 
