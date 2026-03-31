@@ -17,8 +17,23 @@ async function fetchPage(url: string): Promise<string> {
             responseType: "arraybuffer", // バイナリデータとして取得
         });
 
-        // 正しいエンコーディングを指定（対象のサイトに応じて変更）
-        const content = iconv.decode(response.data, "UTF-8");
+        // Try to detect encoding from headers or meta tags
+        let encoding = "utf-8";
+        const contentType = response.headers && (response.headers["content-type"] || response.headers["Content-Type"] || "");
+        const m = /charset=([^;\s]+)/i.exec(contentType as string);
+        if (m && m[1]) {
+            encoding = m[1].toLowerCase();
+        } else {
+            // Fallback: inspect the first chunk of the HTML for a meta charset declaration
+            const snippet = response.data.slice(0, 4096).toString("latin1");
+            const meta1 = /<meta[^>]*charset=["']?([^"'>\s]+)/i.exec(snippet);
+            const meta2 = /<meta[^>]*content=["'][^"']*charset=([^"'>\s]+)/i.exec(snippet);
+            if (meta1 && meta1[1]) encoding = meta1[1].toLowerCase();
+            else if (meta2 && meta2[1]) encoding = meta2[1].toLowerCase();
+        }
+
+        // Decode using iconv-lite with detected encoding
+        const content = iconv.decode(response.data, encoding);
         return content;
     } catch (error) {
         console.error("Error fetching page:", error);
@@ -86,16 +101,16 @@ async function checkForUpdates() {
         let diff = "";
 
         const excludeWords = ["実験", "集中講義", "厚労省", "ＡＭＥＤ", "表彰・賞", "週刊", "国推/交流", "留学", "公共政策大学院", "シンポジウム", "医療機器", "国際推進課", "メルマガ", "アントレ道場", "起業", "エレベーター点検", "危険物"];
-        const includeWords = ["科研", "期限", "重要", "研推", "学振", "旅費", "JSPS", "IST-RA", "情報理工学系研究科"];
+        const includeWords = ["科研", "研推", "学振", "旅費", "DC", "JSPS", "IST-RA", "情報理工学系研究科"];
 
         for (let j = 0; j < lines.length; j += 2) {
             let desc = lines[j];
             const url = lines[j + 1];
-            if (excludeWords.some(keyword => desc.includes(keyword))) {
+            if (!includeWords.some(keyword => desc.includes(keyword))) {
                 continue;
             }
-            if (includeWords.some(keyword => desc.includes(keyword))) {
-                desc = "❗ " + desc;
+            if (excludeWords.some(keyword => desc.includes(keyword))) {
+                continue;
             }
             desc = desc.replace(/<[^>]*>/g, ""); // HTMLタグを除去
             desc = desc.replace(/&lt;br&gt;&lt;font size=-1&gt;/g, "");
@@ -104,7 +119,18 @@ async function checkForUpdates() {
             console.assert(url.startsWith("http"), "URLが不正です:", url);
             const id = url.split("/").pop() || url;
             if (!previousHashIds.has(id)) {
-                diff += desc + "\n" + url + "\n";
+                // Fetch page content now that the entry passed filters
+                try {
+                    const pageContent = await fetchPage(url);
+                    const $page = cheerio.load(pageContent);
+                    let text = $page("body").text() || $page.root().text() || "";
+                    text = text.replace(/\s+/g, " ").trim();
+                    // Append description, URL and the extracted page text to the diff
+                    diff += desc + "\n" + url + "\n\n" + text + "\n\n" + "---\n";
+                } catch (e) {
+                    // If fetching fails, still include the URL so it's visible in the diff
+                    diff += desc + "\n" + url + "\n\n" + "(Failed to fetch page content)\n\n" + "---\n";
+                }
                 previousHashIds.add(id);
             }
         }

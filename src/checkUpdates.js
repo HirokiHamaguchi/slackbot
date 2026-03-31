@@ -48,7 +48,7 @@ var TARGET_URLS = [
 ];
 function fetchPage(url) {
     return __awaiter(this, void 0, void 0, function () {
-        var response, content, error_1;
+        var response, encoding, contentType, m, snippet, meta1, meta2, content, error_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -58,7 +58,22 @@ function fetchPage(url) {
                         })];
                 case 1:
                     response = _a.sent();
-                    content = iconv.decode(response.data, "UTF-8");
+                    encoding = "utf-8";
+                    contentType = response.headers && (response.headers["content-type"] || response.headers["Content-Type"] || "");
+                    m = /charset=([^;\s]+)/i.exec(contentType);
+                    if (m && m[1]) {
+                        encoding = m[1].toLowerCase();
+                    }
+                    else {
+                        snippet = response.data.slice(0, 4096).toString("latin1");
+                        meta1 = /<meta[^>]*charset=["']?([^"'>\s]+)/i.exec(snippet);
+                        meta2 = /<meta[^>]*content=["'][^"']*charset=([^"'>\s]+)/i.exec(snippet);
+                        if (meta1 && meta1[1])
+                            encoding = meta1[1].toLowerCase();
+                        else if (meta2 && meta2[1])
+                            encoding = meta2[1].toLowerCase();
+                    }
+                    content = iconv.decode(response.data, encoding);
                     return [2 /*return*/, content];
                 case 2:
                     error_1 = _a.sent();
@@ -99,14 +114,14 @@ function checkForUpdates() {
                     i = 0;
                     _b.label = 1;
                 case 1:
-                    if (!(i < TARGET_URLS.length)) return [3 /*break*/, 6];
+                    if (!(i < TARGET_URLS.length)) return [3 /*break*/, 10];
                     _a = TARGET_URLS[i], index = _a.index, rss = _a.rss;
                     console.log("Checking for updates on ".concat(rss, "..."));
                     return [4 /*yield*/, fetchPage(rss)];
                 case 2:
                     html = _b.sent();
                     if (!html)
-                        return [3 /*break*/, 5];
+                        return [3 /*break*/, 9];
                     $ = cheerio.load(html);
                     mainContent = $("body").text().trim();
                     // 最新の内容を保存
@@ -125,49 +140,82 @@ function checkForUpdates() {
                     lines = lines.slice(ja_idx + 1);
                     if (lines.length % 2 !== 0) {
                         console.warn("Line count not even, skipping...");
-                        return [3 /*break*/, 5];
+                        return [3 /*break*/, 9];
                     }
                     diff = "";
                     excludeWords = ["実験", "集中講義", "厚労省", "ＡＭＥＤ", "表彰・賞", "週刊", "国推/交流", "留学", "公共政策大学院", "シンポジウム", "医療機器", "国際推進課", "メルマガ", "アントレ道場", "起業", "エレベーター点検", "危険物"];
-                    includeWords = ["科研", "期限", "重要", "研推", "学振", "旅費", "JSPS", "IST-RA", "情報理工学系研究科"];
+                    includeWords = ["科研", "研推", "学振", "旅費", "DC", "JSPS", "IST-RA", "情報理工学系研究科"];
                     _loop_1 = function (j) {
-                        var desc = lines[j];
-                        var url = lines[j + 1];
-                        if (excludeWords.some(function (keyword) { return desc.includes(keyword); })) {
-                            return "continue";
-                        }
-                        if (includeWords.some(function (keyword) { return desc.includes(keyword); })) {
-                            desc = "❗ " + desc;
-                        }
-                        desc = desc.replace(/<[^>]*>/g, ""); // HTMLタグを除去
-                        desc = desc.replace(/&lt;br&gt;&lt;font size=-1&gt;/g, "");
-                        desc = desc.replace(/&lt;\/font&gt;/g, "");
-                        console.assert(url.startsWith("http"), "URLが不正です:", url);
-                        var id = url.split("/").pop() || url;
-                        if (!previousHashIds.has(id)) {
-                            diff += desc + "\n" + url + "\n";
-                            previousHashIds.add(id);
-                        }
+                        var desc, url, id, pageContent, $page, text, e_1;
+                        return __generator(this, function (_c) {
+                            switch (_c.label) {
+                                case 0:
+                                    desc = lines[j];
+                                    url = lines[j + 1];
+                                    if (!includeWords.some(function (keyword) { return desc.includes(keyword); })) {
+                                        return [2 /*return*/, "continue"];
+                                    }
+                                    if (excludeWords.some(function (keyword) { return desc.includes(keyword); })) {
+                                        return [2 /*return*/, "continue"];
+                                    }
+                                    desc = desc.replace(/<[^>]*>/g, ""); // HTMLタグを除去
+                                    desc = desc.replace(/&lt;br&gt;&lt;font size=-1&gt;/g, "");
+                                    desc = desc.replace(/&lt;\/font&gt;/g, "");
+                                    console.assert(url.startsWith("http"), "URLが不正です:", url);
+                                    id = url.split("/").pop() || url;
+                                    if (!!previousHashIds.has(id)) return [3 /*break*/, 5];
+                                    _c.label = 1;
+                                case 1:
+                                    _c.trys.push([1, 3, , 4]);
+                                    return [4 /*yield*/, fetchPage(url)];
+                                case 2:
+                                    pageContent = _c.sent();
+                                    $page = cheerio.load(pageContent);
+                                    text = $page("body").text() || $page.root().text() || "";
+                                    text = text.replace(/\s+/g, " ").trim();
+                                    // Append description, URL and the extracted page text to the diff
+                                    diff += desc + "\n" + url + "\n\n" + text + "\n\n" + "---\n";
+                                    return [3 /*break*/, 4];
+                                case 3:
+                                    e_1 = _c.sent();
+                                    // If fetching fails, still include the URL so it's visible in the diff
+                                    diff += desc + "\n" + url + "\n\n" + "(Failed to fetch page content)\n\n" + "---\n";
+                                    return [3 /*break*/, 4];
+                                case 4:
+                                    previousHashIds.add(id);
+                                    _c.label = 5;
+                                case 5: return [2 /*return*/];
+                            }
+                        });
                     };
-                    for (j = 0; j < lines.length; j += 2) {
-                        _loop_1(j);
-                    }
-                    if (!diff) return [3 /*break*/, 4];
+                    j = 0;
+                    _b.label = 3;
+                case 3:
+                    if (!(j < lines.length)) return [3 /*break*/, 6];
+                    return [5 /*yield**/, _loop_1(j)];
+                case 4:
+                    _b.sent();
+                    _b.label = 5;
+                case 5:
+                    j += 2;
+                    return [3 /*break*/, 3];
+                case 6:
+                    if (!diff) return [3 /*break*/, 8];
                     console.log("Website has been updated!");
                     console.log("Diff:", diff);
                     // 差分をSlack通知に送信
                     return [4 /*yield*/, (0, slackNotifier_1.sendSlackNotification)("\uD83D\uDD14 ".concat(index, " \u304C\u66F4\u65B0\u3055\u308C\u307E\u3057\u305F\uFF01\n") + diff)];
-                case 3:
+                case 7:
                     // 差分をSlack通知に送信
                     _b.sent();
-                    return [3 /*break*/, 5];
-                case 4:
+                    return [3 /*break*/, 9];
+                case 8:
                     console.log("No changes detected.");
-                    _b.label = 5;
-                case 5:
+                    _b.label = 9;
+                case 9:
                     i++;
                     return [3 /*break*/, 1];
-                case 6:
+                case 10:
                     console.log("Done.");
                     return [2 /*return*/];
             }

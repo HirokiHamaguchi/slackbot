@@ -48,7 +48,7 @@ After=local-fs.target
 
 [Service]
 Type=oneshot
-ExecStart=/home/hiroki/ドキュメント/slackbot/run.sh
+ExecStart=/home/hiroki/slackbot/run.sh
 hiroki@s6:/etc/systemd/system$ cat AAA_hiroki_made.timer 
 [Unit]
 Description=Run Slackbot script at 18:00 on weekdays
@@ -60,3 +60,22 @@ WakeSystem=true
 
 [Install]
 WantedBy=timers.target -->
+
+以下が効いた
+
+# ① パスを英語に
+mv /home/hiroki/ドキュメント/slackbot /home/hiroki/slackbot
+
+# ② 実行権限
+chmod +x /home/hiroki/slackbot/run.sh
+
+# ③ service修正（ExecStart）
+
+# ④ reload
+systemctl daemon-reload
+
+# ⑤ 手動テスト（超重要）
+systemctl start AAA_hiroki_made.service
+
+# ⑥ ログ確認
+journalctl -u AAA_hiroki_made.service -n 50
