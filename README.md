@@ -16,7 +16,7 @@ https://nodejs.org/en/download
     npm install
     ```
 
-3. .envにSLACK_WEBHOOK_URLを記載する。セキュリティ上の理由より、localにのみ保存している。
+3. .envにSLACK_WEBHOOK_URLを記載する。セキュリティ上の理由より、localにのみ保存している。Slackのbot管理画面から確認可能
 
 4. 以下を走らせ、jsファイルを生成する。
 
