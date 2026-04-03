@@ -143,8 +143,8 @@ function checkForUpdates() {
                         return [3 /*break*/, 9];
                     }
                     diff = "";
-                    excludeWords = ["実験", "集中講義", "厚労省", "ＡＭＥＤ", "表彰・賞", "週刊", "国推/交流", "留学", "公共政策大学院", "シンポジウム", "医療機器", "国際推進課", "メルマガ", "アントレ道場", "起業", "エレベーター点検", "危険物"];
-                    includeWords = ["科研", "研推", "学振", "旅費", "DC", "JSPS", "IST-RA", "情報理工学系研究科"];
+                    excludeWords = ["実験", "集中講義", "厚労省", "ＡＭＥＤ", "表彰・賞", "週刊", "国推/交流", "留学", "公共政策大学院", "シンポジウム", "医療機器", "国際推進課", "メルマガ", "アントレ道場", "起業", "エレベーター点検", "危険物", "リマインド"];
+                    includeWords = ["科研", "学振", "DC", "JSPS"];
                     _loop_1 = function (j) {
                         var desc, url, id, pageContent, $page, text, e_1;
                         return __generator(this, function (_c) {
